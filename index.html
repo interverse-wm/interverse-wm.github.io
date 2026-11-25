@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script async src="https://www.googletagmanager.com/gtm.js?id=GTM-P5B2BHSF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interverse: Free-Form Interaction and Navigation in a Multi-Player World</title>
+<meta name="description" content="Interverse is a video world model in which multiple players navigate and move arbitrary objects in a shared scene, each through their own independently controllable camera.">
+<meta property="og:title" content="Interverse: Free-Form Interaction and Navigation in a Multi-Player World">
+<meta property="og:description" content="A multi-player video world model where every player steers their own camera and drags objects in their own view, and every view stays consistent.">
+<meta property="og:image" content="static/img/og.jpg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0b0c10">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='24' cy='32' r='16' fill='%23f29230'/%3E%3Ccircle cx='40' cy='32' r='16' fill='%23548cf5' fill-opacity='.85'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0b0c10;
+  --bg-2: #111318;
+  --card: #15171d;
+  --line: #23262e;
+  --fg: #eef0f4;
+  --dim: #9aa0ad;
+  --faint: #5d626e;
+  --p1: #f29230;
+  --p2: #548cf5;
+  --grad: linear-gradient(90deg, #46c86e, #28b4af 33%, #466ee8 66%, #a555e1);
+  --radius: 14px;
+  --sans: "Avenir Next", "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 400 17px/1.65 var(--sans); -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+::selection { background: rgba(242, 146, 48, .35); }
+
+.wrap { width: min(1120px, 100% - 32px); margin: 0 auto; }
+.narrow { width: min(760px, 100% - 32px); margin: 0 auto; }
+
+/* ── hero ─────────────────────────────────────────── */
+.hero { position: relative; padding: 88px 0 40px; text-align: center; overflow: hidden; }
+.hero::before {
+  content: ""; position: absolute; inset: -20% -10% auto; height: 760px; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(520px 340px at 30% 30%, rgba(242, 146, 48, .16), transparent 70%),
+    radial-gradient(560px 360px at 72% 26%, rgba(84, 140, 245, .17), transparent 70%);
+  filter: blur(10px);
+}
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 10px; margin: 0 0 22px;
+  font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--dim);
+}
+.eyebrow .dots { display: inline-flex; }
+.eyebrow .dots i { width: 9px; height: 9px; border-radius: 50%; display: block; }
+.eyebrow .dots i + i { margin-left: -3px; }
+h1 { margin: 0; font-weight: 300; font-size: clamp(56px, 10vw, 112px); line-height: 1; letter-spacing: -.02em; }
+.subtitle { margin: 18px auto 0; max-width: 760px; font-size: clamp(19px, 2.6vw, 26px); font-weight: 300; color: #d5d8df; line-height: 1.35; }
+.authors { margin: 34px auto 0; max-width: 960px; display: flex; flex-wrap: wrap; justify-content: center; column-gap: 26px;
+  font-size: 17px; line-height: 1.9; }
+.authors span { white-space: nowrap; }
+.authors .br { flex-basis: 100%; height: 0; }      /* five names per row at most */
+.authors a { text-decoration: none; border-bottom: 1px solid transparent; transition: border-color .2s, color .2s; }
+.authors a:hover { border-bottom-color: currentColor; }
+.authors sup, .affils sup { font-size: 11px; color: var(--dim); margin-left: 1px; }
+.affils { margin-top: 6px; color: var(--dim); font-size: 15px; display: flex; flex-wrap: wrap; justify-content: center; }
+.affils span { margin: 0 12px; white-space: nowrap; }
+.links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 30px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 999px;
+  border: 1px solid var(--line); background: rgba(255, 255, 255, .03); text-decoration: none;
+  font-size: 15px; font-weight: 500; transition: background .2s, border-color .2s, transform .2s;
+}
+.btn:hover { background: rgba(255, 255, 255, .08); border-color: #3a3e48; transform: translateY(-1px); }
+.btn svg { width: 16px; height: 16px; }
+.btn.soon { opacity: .55; pointer-events: none; }
+
+/* ── media ────────────────────────────────────────── */
+.clip { position: relative; }
+.clip video, .clip img { display: block; width: 100%; height: auto; mix-blend-mode: lighten; }
+.chips { position: absolute; inset: 0; pointer-events: none; }
+.chip {
+  position: absolute; transform: translate(10px, 10px); padding: 2px 9px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; letter-spacing: .02em; color: #0b0c10;
+}
+.hero-media { margin: 52px auto 0; width: min(1120px, 100% - 32px); }
+.hero-caption { margin: 16px auto 0; max-width: 820px; color: var(--dim); font-size: 15px; }
+
+/* ── sections ─────────────────────────────────────── */
+section { padding: 84px 0 0; }
+.kicker { font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); margin: 0 0 10px; }
+h2 { margin: 0 0 22px; font-weight: 400; font-size: clamp(30px, 4vw, 40px); letter-spacing: -.01em; line-height: 1.15; }
+h2 em { font-style: normal; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+h3 { margin: 0 0 6px; font-weight: 500; font-size: 19px; }
+p { margin: 0 0 16px; }
+.lead { font-size: 19px; color: #d5d8df; font-weight: 300; }
+.muted { color: var(--dim); }
+
+section.first { padding-top: 72px; }
+section.last { padding-bottom: 96px; }
+.pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin: 36px auto 8px; }
+.pillar { padding: 24px 24px 22px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--line); }
+.pillar .icon { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; margin-bottom: 14px; color: var(--fg);
+  background: linear-gradient(135deg, rgba(242, 146, 48, .22), rgba(84, 140, 245, .22)); }
+.pillar .icon svg { width: 22px; height: 22px; }
+.pillar p { color: var(--dim); font-size: 15.5px; margin: 0; }
+.prose { margin-top: 40px; }
+.prose h3 { font-size: 21px; margin: 34px 0 10px; }
+.prose p { color: #c4c8d0; font-weight: 300; }
+.approach { list-style: none; counter-reset: step; margin: 6px 0 0; padding: 0; display: grid; gap: 16px; }
+.approach li { counter-increment: step; position: relative; padding-left: 46px; color: #c4c8d0; font-weight: 300; }
+.approach li::before {
+  content: counter(step); position: absolute; left: 0; top: 1px; width: 28px; height: 28px; border-radius: 50%;
+  display: grid; place-items: center; font: 500 13px var(--sans); color: var(--fg); border: 1px solid #3a3e48;
+}
+.approach b { color: var(--fg); font-weight: 600; }
+
+.paper-video { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); background: #000; }
+.paper-video iframe { display: block; width: 100%; aspect-ratio: 16 / 9; height: auto; border: 0; }
+
+.chapters { display: grid; gap: 72px; margin-top: 18px; }
+.chapter { display: grid; grid-template-columns: 300px 1fr; gap: 48px; align-items: center; }
+.chapter-text .num {
+  display: inline-block; font-size: 28px; font-weight: 400; font-style: italic; line-height: 1; margin-bottom: 12px;
+  background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.chapter-text h3 { font-size: 22px; margin-bottom: 18px; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.steps li {
+  position: relative; padding: 9px 0 9px 18px; cursor: pointer; color: var(--faint);
+  font-size: 16.5px; line-height: 1.45; transition: color .35s;
+}
+.steps li::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 2px; border-radius: 2px; background: var(--line); }
+.steps li .bar { position: absolute; left: 0; top: 10px; width: 2px; border-radius: 2px; background: var(--grad); height: 0; }
+.steps li em { font-style: normal; }
+.steps li .note { display: block; font-size: 14px; color: var(--faint); margin-top: 4px; max-height: 0; opacity: 0; overflow: hidden; transition: max-height .45s, opacity .45s; }
+.steps li:hover { color: var(--dim); }
+.steps li.on { color: var(--fg); }
+.steps li.on em { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.steps li.on .note { max-height: 80px; opacity: 1; color: var(--dim); }
+.anim video {
+  display: block; width: 100%; height: auto; mix-blend-mode: lighten;
+  /* soft edges, so the clip melts into the page whatever the decoder does to its background colour */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent), linear-gradient(transparent, #000 5%, #000 95%, transparent);
+  -webkit-mask-composite: source-in; mask-composite: intersect;
+}
+.cite { margin: 10px 0 0; font-size: 12.5px; color: var(--faint); }
+
+/* ── results ──────────────────────────────────────── */
+.tabs { display: inline-flex; padding: 4px; gap: 2px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); margin-bottom: 26px; flex-wrap: wrap; }
+.tab {
+  border: 0; background: none; color: var(--dim); font: 500 15px var(--sans); padding: 8px 18px; border-radius: 999px; cursor: pointer;
+  transition: color .2s, background .2s;
+}
+.tab:hover { color: var(--fg); }
+.tab[aria-selected="true"] { background: #262a33; color: var(--fg); }
+.tab .n { font: 400 12px var(--mono); color: var(--faint); margin-left: 6px; }
+
+.panel[hidden] { display: none; }
+.panel-note { color: var(--dim); font-size: 15.5px; margin: 0 0 22px; max-width: 820px; }
+.grid { display: grid; gap: 22px; }
+.grid.g3 { grid-template-columns: repeat(3, 1fr); }
+.grid.g5 { display: flex; flex-wrap: wrap; justify-content: center; }
+.grid.g5 > * { width: calc((100% - 44px) / 3); }
+.grid.g2 { display: flex; flex-wrap: wrap; justify-content: center; }
+.grid.g2 > * { width: calc((100% - 22px) / 2); }
+.grid.g1 { grid-template-columns: min(100%, 740px); justify-content: center; }
+.grid .wide { grid-column: 1 / -1; }
+figure { margin: 0; }
+
+/* ── bibtex / footer ──────────────────────────────── */
+.bib { position: relative; }
+.bib pre {
+  margin: 0; padding: 22px 24px; border-radius: var(--radius); background: var(--bg-2); border: 1px solid var(--line);
+  font: 400 13.5px/1.7 var(--mono); color: #c9ccd4; overflow-x: auto;
+}
+.copy {
+  position: absolute; top: 12px; right: 12px; border: 1px solid var(--line); background: var(--card); color: var(--dim);
+  font: 500 13px var(--sans); padding: 6px 12px; border-radius: 999px; cursor: pointer;
+}
+.copy:hover { color: var(--fg); }
+
+@media (max-width: 860px) {
+  .chapter, .pillars { grid-template-columns: 1fr; }
+  .grid.g2 > * { width: 100%; }
+  .grid.g3 { grid-template-columns: 1fr; gap: 16px; }
+  .authors { column-gap: 18px; }
+  .authors .br { display: none; }
+  .tabs { display: grid; grid-template-columns: 1fr 1fr; border-radius: 18px; width: 100%; }
+  .tab { border-radius: 14px; padding: 8px 10px; }
+  .bib pre { padding-top: 52px; }
+  .grid.g5 { gap: 12px; }
+  .grid.g5 > * { width: calc((100% - 12px) / 2); }
+  .chapter { gap: 18px; }
+  .hero { padding-top: 64px; }
+  section { padding-top: 64px; }
+  .chip { transform: translate(6px, 6px); font-size: 10.5px; padding: 1px 7px; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .btn { transition: none; } }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <p class="eyebrow"><span class="dots"><i style="background:var(--p1)"></i><i style="background:var(--p2)"></i></span>Multi-player video world model</p>
+  <h1>Interverse</h1>
+  <p class="subtitle">Free-Form Interaction and Navigation in a Multi-Player World</p>
+
+  <div class="authors">
+    <span><a href="https://shinying.github.io/">Lee Hsin-Ying</a><sup>1,2</sup></span>
+    <span><a href="https://yiqunmei.net/">Yiqun Mei</a><sup>2</sup></span>
+    <span><a href="https://hwjiang1510.github.io/">Hanwen Jiang</a><sup>2</sup></span>
+    <span><a href="https://jingshilab.com/">Jing Shi</a><sup>2</sup></span>
+    <span><a href="https://shariqfarooq123.github.io/">Shariq Farooq Bhat</a><sup>2</sup></span>
+    <span class="br" aria-hidden="true"></span>
+    <span><a href="https://faculty.ucmerced.edu/mhyang/">Ming-Hsuan Yang</a><sup>1</sup></span>
+    <span><a href="https://zhixinshu.github.io/">Zhixin Shu</a><sup>2</sup></span>
+  </div>
+  <div class="affils"><span><sup>1</sup>University of California, Merced</span><span><sup>2</sup>Adobe Research</span></div>
+
+  <nav class="links">
+    <!-- TODO: replace # with the arXiv abstract / PDF links once the paper is public -->
+    <a class="btn" href="#" aria-label="Paper PDF">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>Paper</a>
+    <a class="btn" href="#" aria-label="arXiv">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4l14 16M19 4l-6.5 7.5M5 20l4.5-5.2"/></svg>arXiv</a>
+    <a class="btn" href="#gallery">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></svg>Gallery</a>
+    <a class="btn" href="#video">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9.5v5l4.5-2.5z" fill="currentColor"/></svg>Video</a>
+    <a class="btn" href="#bibtex">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4H6a2 2 0 0 0-2 2v4l-2 2 2 2v4a2 2 0 0 0 2 2h2M16 4h2a2 2 0 0 1 2 2v4l2 2-2 2v4a2 2 0 0 1-2 2h-2"/></svg>BibTeX</a>
+  </nav>
+
+  <div class="hero-media">
+    <div class="clip" data-clip="view2/h3_jigsaw_puzzle" data-eager></div>
+    <p class="hero-caption">Two players at one jigsaw puzzle, each seeing it through their own eyes from a single starting image. A piece one player drags into place lands in the same spot in the other player's view.</p>
+  </div>
+</header>
+
+<main>
+  <section id="overview" class="first">
+    <div class="narrow">
+      <p class="kicker">Overview</p>
+      <h2>One world, <em>many players</em></h2>
+      <p class="lead">Video world models let you step into a generated world, but usually alone, and usually only to look around. Interverse opens that world to several players at once.</p>
+    </div>
+    <div class="pillars wrap">
+      <div class="pillar">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h1M10 10h1M13.5 10h1M17 10h.5M7 14h10"/></svg></span>
+        <h3>Navigate</h3>
+        <p>Every player walks and looks around with their own camera, steered by the keyboard.</p>
+      </div>
+      <div class="pillar">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V4.5a1.5 1.5 0 0 1 3 0V10m0-1.5a1.5 1.5 0 0 1 3 0V11m0-1a1.5 1.5 0 0 1 3 0v4.5a6 6 0 0 1-6 6h-1a6 6 0 0 1-4.6-2.2L4 15.6a1.6 1.6 0 0 1 2.4-2.1L9 15"/></svg></span>
+        <h3>Interact</h3>
+        <p>Any object can be moved by drawing where it should go, right in the player's own view.</p>
+      </div>
+      <div class="pillar">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M2.5 19a5.5 5.5 0 0 1 11 0M10.5 19a5.5 5.5 0 0 1 11 0"/></svg></span>
+        <h3>Share</h3>
+        <p>What one player does shows up in every other player's view, consistent in space and time.</p>
+      </div>
+    </div>
+    <div class="narrow prose">
+      <h3>Why this is hard</h3>
+      <p>On screen, walking and pushing look the same. A camera move slides every pixel, so a drawn path cannot tell whether the object or the viewer moved. Trajectories mined from ordinary videos by point tracking mix the two kinds of motion as well, which makes it hard for a model trained on them to tell the two apart.</p>
+      <h3>What Interverse does</h3>
+      <ol class="approach">
+        <li><b>Separates the two motions.</b> Object motion is drawn in the player's current view, and synchronized multi-view video supervises it. Points that move in a static view are object motion, and they are matched into the moving view.</li>
+        <li><b>Speaks in pixels.</b> The camera becomes a rendered lattice world and drags become white dots. Together they form one control video that pretrained generators read with few or no architectural changes.</li>
+        <li><b>Generates all players together.</b> Every camera lives in one shared frame, and all views are stitched and denoised jointly, trained on a curated mix of single-view and synchronized multi-view videos.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="method">
+    <div class="wrap">
+      <p class="kicker">Method</p>
+      <h2>How it works</h2>
+      <div class="chapters">
+        <article class="chapter" data-method="two_ways" data-num="00" data-title="Navigate and interact"></article>
+        <article class="chapter" data-method="disentangle" data-num="01" data-title="Disentangled control"></article>
+        <article class="chapter" data-method="current_view" data-num="02" data-title="Current-view trajectories"></article>
+        <article class="chapter" data-method="pixel" data-num="03" data-title="Pixel-space condition"></article>
+        <article class="chapter" data-method="multi" data-num="04" data-title="Multi-player modeling"></article>
+      </div>
+    </div>
+  </section>
+
+  <section id="gallery">
+    <div class="wrap">
+      <p class="kicker">Gallery</p>
+      <h2>Navigate and interact, <em>together</em></h2>
+      <div class="tabs" role="tablist" aria-label="Number of players">
+        <button class="tab" role="tab" aria-selected="false" data-tab="two">Two players<span class="n">5</span></button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="one">One player<span class="n">5</span></button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="four">Four players<span class="n">3</span></button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="eight">Eight players<span class="n">3</span></button>
+      </div>
+
+      <div class="panel" role="tabpanel" data-panel="two">
+        <p class="panel-note">Each player starts from their own image of the scene and controls their own camera and drags. Motion drawn by one player shows up in the other player's view, from where they stand.</p>
+        <div class="grid g2" data-group="two"></div>
+      </div>
+      <div class="panel" role="tabpanel" data-panel="one" hidden>
+        <p class="panel-note">A single player navigates and drags objects at the same time. Objects follow the drawn points as the camera moves.</p>
+        <div class="grid g5" data-group="one"></div>
+      </div>
+      <div class="panel" role="tabpanel" data-panel="four" hidden>
+        <p class="panel-note">Preliminary, zero-shot. The H3 model is trained only on single- and two-view data, yet it keeps four views consistent when they are stitched into one grid, each with its own controls.</p>
+        <div class="grid g3" data-group="four"></div>
+      </div>
+      <div class="panel" role="tabpanel" data-panel="eight" hidden>
+        <p class="panel-note">Preliminary, zero-shot. Eight views of synthetic benchmark scenes, generated jointly by the same two-view H3 model. Points are given in the first view; overlays are not shown.</p>
+        <div class="grid g1" data-group="eight"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="video">
+    <div class="wrap">
+      <p class="kicker">Video</p>
+      <h2>Watch the overview</h2>
+      <div class="paper-video">
+        <iframe src="https://www.youtube.com/embed/6Am6hpdtgDo" title="Interverse overview video" loading="lazy"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+      </div>
+    </div>
+  </section>
+
+  <section id="bibtex" class="last">
+    <div class="wrap">
+      <p class="kicker">Citation</p>
+      <h2>BibTeX</h2>
+      <div class="bib">
+        <button class="copy" type="button">Copy</button>
+<pre><code>@article{lee2026interverse,
+  title   = {Interverse: Free-Form Interaction and Navigation in a Multi-Player World},
+  author  = {Lee, Hsin-Ying and Mei, Yiqun and Jiang, Hanwen and Shi, Jing and
+             Bhat, Shariq Farooq and Yang, Ming-Hsuan and Shu, Zhixin},
+  journal = {arXiv preprint},
+  year    = {2026}
+}</code></pre>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="static/videos/method/cues.js"></script>
+<script>
+const PLAYER = ["#f29230", "#548cf5", "#46c86e", "#a555e1", "#28b4af", "#e05a8a", "#e8c547", "#8a93a6"];
+const GAP = 14, COLS = {1: 1, 2: 2, 4: 2, 8: 4};
+// name, caption, backbone, w, h, views (from make_clips.py / static/clips.json)
+const CLIPS = {
+  one: [
+    ["single/h3ft2000_chess", "Chess", "H3", 960, 960, 1],
+    ["single/h3mix3000_pingpong2", "Ping pong", "H3", 960, 960, 1],
+    ["single/wan5000_golf", "Golf", "Wan2.2", 960, 960, 1],
+    ["single/h3mix3000_livingroom", "Living room", "H3", 960, 960, 1],
+    ["single/h3ft2000_pool2", "Pool", "H3", 960, 960, 1],
+  ],
+  two: [
+    ["view2/h3seed1_arcade_air_hockey", "Air hockey", "H3", 1454, 720, 2],
+    ["view2/h3_park_chess", "Chess in the park", "H3", 1454, 720, 2],
+    ["view2/wan_bowling", "Bowling", "Wan2.2", 1454, 720, 2],
+    ["view2/wanmulti1000_basketball", "Basketball", "Wan2.2", 1454, 720, 2],
+    ["view2/h3seed4_pub_darts", "Darts", "H3", 1454, 720, 2],
+  ],
+  hero: [
+    ["view2/h3_jigsaw_puzzle", "Jigsaw puzzle", "H3", 1454, 720, 2],
+  ],
+  four: [
+    ["view4/h3_club_bridge", "Bridge", "H3", 974, 974, 4],
+    ["view4/h3seed1_cabin_crokinole", "Crokinole", "H3", 974, 974, 4],
+    ["view4/h3seed1_jianzi_circle", "Jianzi", "H3", 974, 974, 4],
+  ],
+  eight: [
+    ["view8/physinone__CatapultLaunch__bg189__JJT3If", "Catapult", "H3", 1482, 734, 8],
+    ["view8/physinone__MovingHitsMoving_RollDownSlope_RollUpSlope__bg180__nd0EOh", "Rolling collision", "H3", 1482, 734, 8],
+    ["view8/physinone__MovingHitsStationary_RollDownSlope_SimplePendulum__bg152__viBm4x", "Pendulum", "H3", 1482, 734, 8],
+  ],
+};
+const INFO = {};
+Object.values(CLIPS).flat().forEach(c => INFO[c[0]] = c);
+
+function clipEl(el, name, eager) {
+  const [, caption, , w, h, views] = INFO[name];
+  const v = document.createElement("video");
+  Object.assign(v, {muted: true, loop: true, playsInline: true, preload: eager ? "auto" : "none"});
+  v.setAttribute("muted", ""); v.setAttribute("playsinline", "");
+  v.width = w; v.height = h;
+  v.poster = `static/videos/${name}.jpg`;
+  v.src = `static/videos/${name}.mp4`;
+  v.setAttribute("aria-label", caption);
+  el.append(v);
+  if (views > 1) {                                   // player chips on each tile
+    const cols = COLS[views], rows = Math.ceil(views / cols);
+    const tw = (w - (cols - 1) * GAP) / cols, th = (h - (rows - 1) * GAP) / rows;
+    const chips = document.createElement("div");
+    chips.className = "chips";
+    for (let i = 0; i < views; i++) {
+      const c = document.createElement("span");
+      c.className = "chip";
+      c.textContent = views > 2 ? `P${i + 1}` : `Player ${i + 1}`;
+      c.style.background = PLAYER[i];
+      c.style.left = `${(i % cols) * (tw + GAP) / w * 100}%`;
+      c.style.top = `${Math.floor(i / cols) * (th + GAP) / h * 100}%`;
+      chips.append(c);
+    }
+    el.append(chips);
+  }
+  watch(v);
+}
+
+// play only what is on screen; a method animation starts from its beginning each time its chapter
+// scrolls into the middle of the screen, so the steps beside it are read from the first one
+const onScreen = es => es.forEach(e => {
+  const v = e.target;
+  if (e.isIntersecting) {
+    if (v.dataset.restart !== undefined) v.currentTime = 0;
+    v.play().catch(() => {});
+  } else { v.pause(); }
+});
+const io = new IntersectionObserver(onScreen, {threshold: 0.35});
+const ioMethod = new IntersectionObserver(onScreen, {rootMargin: "-30% 0px -30% 0px"});
+function watch(v) { (v.dataset.restart !== undefined ? ioMethod : io).observe(v); }
+
+// method: the animation's narration as page text, the step being played lit up (click a step to jump to it)
+const syncs = [];
+document.querySelectorAll("[data-method]").forEach(art => {
+  const name = art.dataset.method, info = window.METHOD[name];
+  const text = document.createElement("div");
+  text.className = "chapter-text";
+  text.innerHTML = `<span class="num">${art.dataset.num}</span><h3></h3><ol class="steps"></ol>`;
+  text.querySelector("h3").textContent = art.dataset.title;
+  const ol = text.querySelector("ol");
+  const items = info.steps.map((st, i) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="bar"></span><span class="s">${st.html}</span>` + (st.note ? `<span class="note">${st.note}</span>` : "");
+    ol.append(li);
+    return li;
+  });
+  const anim = document.createElement("div");
+  anim.className = "anim";
+  const v = document.createElement("video");
+  Object.assign(v, {muted: true, loop: true, playsInline: true, preload: "auto"});
+  v.setAttribute("muted", ""); v.setAttribute("playsinline", ""); v.dataset.restart = "";
+  v.width = info.w; v.height = info.h;
+  v.poster = `static/videos/method/${name}.jpg`;
+  v.src = `static/videos/method/${name}.mp4`;
+  v.setAttribute("aria-label", art.dataset.title);
+  anim.append(v);
+  if (info.cite) {
+    const c = document.createElement("p");
+    c.className = "cite";
+    c.textContent = `Lattice world as in ${info.cite}.`;
+    anim.append(c);
+  }
+  art.append(text, anim);
+  const starts = info.steps.map(st => st.t);
+  const ends = starts.slice(1).concat([info.duration - 0.6]);
+  let cur = -1;
+  const sync = () => {
+    const t = v.currentTime;
+    let k = 0;
+    starts.forEach((s0, i) => { if (t >= s0 - 0.05) k = i; });
+    if (k !== cur) { items.forEach((li, i) => li.classList.toggle("on", i === k)); cur = k; }
+    items.forEach((li, i) => {
+      const u = i < k ? 0 : i > k ? 0 : Math.min(1, Math.max(0, (t - starts[i]) / (ends[i] - starts[i])));
+      li.querySelector(".bar").style.height = `${u * (li.offsetHeight - 20)}px`;
+    });
+  };
+  items.forEach((li, i) => li.addEventListener("click", () => { v.currentTime = starts[i]; v.play().catch(() => {}); sync(); }));
+  syncs.push(sync);
+  sync();
+  watch(v);
+});
+(function tick() { syncs.forEach(f => f()); requestAnimationFrame(tick); })();
+
+for (const [group, list] of Object.entries(CLIPS)) {
+  if (group === "hero") continue;
+  const grid = document.querySelector(`[data-group="${group}"]`);
+  list.forEach(([name, caption, backbone], i) => {
+    const fig = document.createElement("figure");
+    fig.className = "card";
+    const box = document.createElement("div");
+    box.className = "clip";
+    fig.append(box);
+    grid.append(fig);
+    clipEl(box, name, false);
+  });
+}
+document.querySelectorAll("[data-clip]").forEach(el => clipEl(el, el.dataset.clip, el.hasAttribute("data-eager")));
+
+// tabs
+const tabs = [...document.querySelectorAll(".tab")];
+function select(key) {
+  tabs.forEach(t => t.setAttribute("aria-selected", t.dataset.tab === key));
+  document.querySelectorAll(".panel").forEach(p => {
+    const on = p.dataset.panel === key;
+    p.hidden = !on;
+    if (!on) p.querySelectorAll("video").forEach(v => v.pause());
+  });
+}
+tabs.forEach(t => t.addEventListener("click", () => select(t.dataset.tab)));
+tabs.forEach((t, i) => t.addEventListener("keydown", e => {
+  const d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+  if (d) { const n = tabs[(i + d + tabs.length) % tabs.length]; n.focus(); select(n.dataset.tab); }
+}));
+select("two");
+
+// copy BibTeX
+document.querySelector(".copy").addEventListener("click", async e => {
+  try {
+    await navigator.clipboard.writeText(document.querySelector(".bib code").textContent);
+    e.target.textContent = "Copied";
+  } catch { e.target.textContent = "Select and copy"; }
+  setTimeout(() => e.target.textContent = "Copy", 1600);
+});
+</script>
+</body>
+</html>
